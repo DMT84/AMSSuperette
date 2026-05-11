@@ -1,0 +1,63 @@
+package AMS;
+
+import java.sql.SQLException;
+import java.util.Scanner;
+
+public class FournisseurMenu {
+    private Scanner scanner;
+    private Gestion gestion;
+
+    public FournisseurMenu(Scanner scanner, Gestion gestion) {
+        this.scanner = scanner;
+        this.gestion = gestion;
+    }
+
+    public void afficherMenu() {
+        while (true) {
+            System.out.println("=== Gérer les fournisseurs ===");
+            System.out.println("1. Ajouter un fournisseur");
+            System.out.println("2. Supprimer un fournisseur");
+            System.out.println("3. Afficher les fournisseurs");
+            System.out.println("4. Modifier un fournisseur");
+            System.out.println("5. Retour au menu Vendeur");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    ajouterFournisseur();
+                    break;
+                case "2":
+                    supprimerFournisseur();
+                    break;
+                case "3":
+                    try {
+                        gestion.displayTable("fournisseur");
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage : " + e.getMessage());
+                    }
+                    break;
+                case "4":
+                    modifierFournisseur();
+                    break;
+                case "5":
+                    return;  // Retour au menu vendeur
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    private void ajouterFournisseur() {
+        // Code pour ajouter un fournisseur
+    }
+
+    private void supprimerFournisseur() {
+        // Code pour supprimer un fournisseur
+    }
+
+    private void modifierFournisseur() {
+        // Code pour modifier un fournisseur
+    }
+}

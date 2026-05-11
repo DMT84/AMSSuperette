@@ -1,0 +1,121 @@
+package AMS;
+
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Scanner;
+
+public class MenuFournisseur {
+    private Scanner scanner;
+    private Gestion gestion;
+
+    public MenuFournisseur(Scanner scanner, Gestion gestion) {
+        this.scanner = scanner;
+        this.gestion = gestion;
+    }
+
+    public void afficherMenu() {
+        while (true) {
+            System.out.println("=== Gérer les fournisseurs ===");
+            System.out.println("1. Ajouter un fournisseur");
+            System.out.println("2. Supprimer un fournisseur");
+            System.out.println("3. Afficher les fournisseurs");
+            System.out.println("4. Modifier un fournisseur");
+            System.out.println("5. Retour au menu Vendeur");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    ajouterfournisseur(scanner,gestion);
+                    break;
+                case "2":
+                    supprimerFournisseur(scanner,gestion);
+                    break;
+                case "3":
+                    try {
+                        gestion.displayTable("fournisseur");
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage : " + e.getMessage());
+                    }
+                    break;
+                case "4":
+                    modifierFournisseur(scanner,gestion);
+                    break;
+                case "5":
+                    return;  // Retour au menu vendeur
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    private static void ajouterfournisseur(Scanner scanner, Gestion gestion) {
+        try {
+        	System.out.print("Entrez l'id du fournisseur ");
+        	int id_fournisseur = Integer.parseInt(scanner.nextLine());
+            
+            System.out.print("Entrez le nom du fournisseur ");
+            String nom = scanner.nextLine();
+
+            System.out.print("Entrez le numero de siret:");
+            int num_siret = Integer.parseInt(scanner.nextLine());
+
+            System.out.print("Entrez l'adresse du fournisseur: ");
+            String adresse = scanner.nextLine();
+
+            System.out.print("Entrez l'email du fournisseur: ");
+            String email = scanner.nextLine();
+
+            gestion.insertFournisseur(id_fournisseur,nom, num_siret,adresse,email);
+            System.out.println("Fournisseur ajouté avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de l'ajout : " + e.getMessage());
+        }
+    }
+    private static void modifierFournisseur(Scanner scanner, Gestion gestion) {
+        try {
+            // Afficher la liste des fournisseurs
+            System.out.println("=== Liste des Fournisseurs ===");
+            gestion.displayTable("fournisseur");
+
+            // Demander l'ID du fournisseur à modifier
+            System.out.print("Entrez l'ID du fournisseur à modifier : ");
+            int idFournisseur = Integer.parseInt(scanner.nextLine());
+
+            // Demander les nouvelles informations
+            System.out.print("Entrez le nouveau nom du fournisseur : ");
+            String nouveauNom = scanner.nextLine();
+
+            System.out.print("Entrez le nouveau numéro SIRET : ");
+            long nouveauSiret = Long.parseLong(scanner.nextLine());
+
+            System.out.print("Entrez la nouvelle adresse du fournisseur : ");
+            String nouvelleAdresse = scanner.nextLine();
+
+            System.out.print("Entrez le nouvel email du fournisseur : ");
+            String nouvelEmail = scanner.nextLine();
+
+            // Appeler la méthode de mise à jour dans la classe Gestion
+            gestion.updateFournisseur(idFournisseur, nouveauNom, nouveauSiret, nouvelleAdresse, nouvelEmail);
+
+            System.out.println("Fournisseur modifié avec succès !");
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de la modification : " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Entrée invalide. Veuillez saisir des valeurs correctes.");
+        }
+    }
+    private static void supprimerFournisseur(Scanner scanner, Gestion gestion) {
+        try {
+            System.out.print("Entrez l'id du fournisseur à supprimer : ");
+            int id_fournisseur = Integer.parseInt(scanner.nextLine());
+
+            gestion.supprimerFournisseur(id_fournisseur);
+            System.out.println("Fournisseur supprimé avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de la suppression : " + e.getMessage());
+        }
+    }
+  
+}

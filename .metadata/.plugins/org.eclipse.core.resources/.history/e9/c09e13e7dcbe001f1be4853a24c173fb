@@ -1,0 +1,71 @@
+package AMS;
+
+import java.sql.SQLException;
+import java.util.Scanner;
+
+public class Fournisseur {
+	public static void ajouterfournisseur(Scanner scanner, Gestion gestion) {
+        try {
+        	System.out.print("Entrez l'id du fournisseur ");
+        	int id_fournisseur = Integer.parseInt(scanner.nextLine());
+            
+            System.out.print("Entrez le nom du fournisseur ");
+            String nom = scanner.nextLine();
+
+            System.out.print("Entrez le numero de siret:");
+            long num_siret = Long.parseLong(scanner.nextLine());
+
+            System.out.print("Entrez l'adresse du fournisseur: ");
+            String adresse = scanner.nextLine();
+
+            System.out.print("Entrez l'email du fournisseur: ");
+            String email = scanner.nextLine();
+
+            gestion.insertFournisseur(id_fournisseur,nom, num_siret,adresse,email);
+            System.out.println("Fournisseur ajouté avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de l'ajout : " + e.getMessage());
+        }
+    }
+    public static void modifierFournisseur(Scanner scanner, Gestion gestion) {
+        try {
+            System.out.println("=== Liste des Fournisseurs ===");
+            gestion.displayTable("fournisseur");
+
+            System.out.print("Entrez l'ID du fournisseur à modifier : ");
+            int idFournisseur = Integer.parseInt(scanner.nextLine());
+
+            System.out.print("Entrez le nouveau nom du fournisseur : ");
+            String nouveauNom = scanner.nextLine();
+
+            System.out.print("Entrez le nouveau numéro SIRET : ");
+            long nouveauSiret = Long.parseLong(scanner.nextLine());
+
+            System.out.print("Entrez la nouvelle adresse du fournisseur : ");
+            String nouvelleAdresse = scanner.nextLine();
+
+            System.out.print("Entrez le nouvel email du fournisseur : ");
+            String nouvelEmail = scanner.nextLine();
+
+            gestion.modifierFournisseur(idFournisseur, nouveauNom, nouveauSiret, nouvelleAdresse, nouvelEmail);
+
+            System.out.println("Fournisseur modifié avec succès !");
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de la modification : " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Entrée invalide. Veuillez saisir des valeurs correctes.");
+        }
+    }
+    
+    public static void supprimerFournisseur(Scanner scanner, Gestion gestion) {
+        try {
+            System.out.print("Entrez l'id du fournisseur à supprimer : ");
+            int id_fournisseur = Integer.parseInt(scanner.nextLine());
+
+            gestion.supprimerFournisseur(id_fournisseur);
+            System.out.println("Fournisseur supprimé avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de la suppression : " + e.getMessage());
+        }
+    }
+}

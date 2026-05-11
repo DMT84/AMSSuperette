@@ -1,0 +1,81 @@
+package AMS;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class Statistique {
+	 public static void afficherStatistiques(Gestion gestion) {
+	        try {
+	            System.out.println("=== Statistiques des ventes ===");
+	            String queryJour = """
+	                select 
+	                    coalesce(sum(v.prix * v.quantite - v.quantite * a.prix_unitaire), 0) as total_benefices_jour, 
+	                    count(*) as total_ventes_jour
+	                from vente v
+	                join lot l on v.id_lot = l.id_lot
+	                join achat a on l.id_achat = a.id_achat
+	                where v.date_vente = CURRENT_DATE
+	            """;
+	            try (ResultSet rs = gestion.executeQuery(queryJour)) {
+	                if (rs.next()) {
+	                    System.out.println("Total des ventes aujourd'hui : " + rs.getInt("total_ventes_jour"));
+	                    System.out.println("Bénéfices aujourd'hui : " + rs.getDouble("total_benefices_jour"));
+	                }
+	            }
+
+	            String queryMois = """
+	                select 
+	                    coalesce(sum(v.prix * v.quantite - v.quantite * a.prix_unitaire), 0) as total_benefices_mois, 
+	                    count(*) as total_ventes_mois
+	                from vente v
+	                join lot l on v.id_lot = l.id_lot
+	                join achat a on l.id_achat = a.id_achat
+	                where extract(MonTH from v.date_vente) = extract(MonTH from CURRENT_DATE)
+	                  AND extract(YEAR from v.date_vente) = extract(YEAR from CURRENT_DATE)
+	            """;
+	            try (ResultSet rs = gestion.executeQuery(queryMois)) {
+	                if (rs.next()) {
+	                    System.out.println("Total des ventes ce mois-ci : " + rs.getInt("total_ventes_mois"));
+	                    System.out.println("Bénéfices ce mois-ci : " + rs.getDouble("total_benefices_mois"));
+	                }
+	            }
+	            
+	            System.out.println("\nTop 10 des ventes en quantité :");
+	            String queryTopQuantite = """
+	                select 
+	                    v.id_lot, 
+	                    sum(v.quantite) as total_quantite
+	                from vente v
+	                group by v.id_lot
+	                order by total_quantite DESC
+	                limit 10
+	            """;
+	            try (ResultSet rs = gestion.executeQuery(queryTopQuantite)) {
+	                while (rs.next()) {
+	                    System.out.println("ID Lot : " + rs.getInt("id_lot") + ", Quantité vendue : " + rs.getInt("total_quantite"));
+	                }
+	            }
+
+	            System.out.println("\nTop 10 des ventes en bénéfices :");
+	            String queryTopBenefices = """
+	                select 
+	                    v.id_lot, 
+	                    sum(v.prix * v.quantite - l.quantite * a.prix_unitaire) as total_benefices
+	                from vente v
+	                join lot l on v.id_lot = l.id_lot
+	                join achat a on l.id_achat = a.id_achat
+	                group by v.id_lot
+	                order by total_benefices DESC
+	                limit 10
+	            """;
+	            try (ResultSet rs = gestion.executeQuery(queryTopBenefices)) {
+	                while (rs.next()) {
+	                    System.out.println("ID Lot : " + rs.getInt("id_lot") + ", Bénéfices : " + rs.getDouble("total_benefices"));
+	                }
+	            }
+
+	        } catch (SQLException e) {
+	            System.out.println("Erreur lors de l'affichage des statistiques : " + e.getMessage());
+	        }
+	    }
+}

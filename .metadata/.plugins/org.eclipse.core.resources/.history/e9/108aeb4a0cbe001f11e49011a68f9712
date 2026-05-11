@@ -1,0 +1,117 @@
+package AMS;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Scanner;
+
+public class Commande {
+	 public static void validerCommande(Scanner scanner, Gestion gestion) {
+	        System.out.print("Entrez l'ID de la commande à valider : ");
+	        String idCommandeStr = scanner.nextLine();
+	        try {
+	            int idCommande = Integer.parseInt(idCommandeStr);
+	            
+	            Connection conn = gestion.connection;
+	            
+	            String query = "select id_fournisseur, id_lot, quantite_commande from commande WHERE id_commande = ?";
+	            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+	                stmt.setInt(1, idCommande);
+	                try (ResultSet rs = stmt.executeQuery()) {
+	                    if (rs.next()) {
+	                        int idFournisseur = rs.getInt("id_fournisseur");
+	                        int idLot = rs.getInt("id_lot");
+	                        int quantiteCommande = rs.getInt("quantite_commande");
+
+	                        if (idFournisseur != 0) {
+
+	                            String insertAchat = "insert into achat (id_fournisseur, id_produit, prix_unitaire, quantite_achat, date_achat) " +
+	                                                 "select ?, p.id_produit, p.prix, ?, CURRENT_DATE " +
+	                                                 "from lot l join produitAMS p on l.id_achat = p.id_produit " +
+	                                                 "WHERE l.id_lot = ?";
+	                            try (PreparedStatement insertStmt = conn.prepareStatement(insertAchat)) {
+	                                insertStmt.setInt(1, idFournisseur);
+	                                insertStmt.setInt(2, quantiteCommande);
+	                                insertStmt.setInt(3, idLot);
+	                                insertStmt.executeUpdate();
+	                            }
+	                            
+	                            String updateLot = "update lot  set quantite = quantite + ? " + 
+	                                               "WHERE id_lot = ?";
+	                            try (PreparedStatement updateStmt = conn.prepareStatement(updateLot)) {
+	                                updateStmt.setInt(1, quantiteCommande);
+	                                updateStmt.setInt(2, idLot);
+	                                updateStmt.executeUpdate();
+	                            }
+	                            
+	                            String updateCommande = "update commande set statut = 'Validée' WHERE id_commande = ?";
+	                            try (PreparedStatement updateStmt = conn.prepareStatement(updateCommande)) {
+	                                updateStmt.setInt(1, idCommande);
+	                                updateStmt.executeUpdate();
+	                                System.out.println("Commande validée et ajoutée dans l'achat.");
+	                            }
+	                        } else {
+	                            System.out.println("La commande n'a pas de fournisseur associé, impossible de valider.");
+	                        }
+	                    } else {
+	                        System.out.println("Commande non trouvée.");
+	                    }
+	                }
+	            }
+	        } catch (SQLException e) {
+	            System.out.println("Erreur lors de la validation de la commande : " + e.getMessage());
+	        } catch (NumberFormatException e) {
+	            System.out.println("ID de commande invalide.");
+	        }
+	    }
+
+
+	    public static void reporterCommande(Scanner scanner, Gestion gestion) {
+	        System.out.print("Entrez l'ID de la commande à reporter : ");
+	        String idCommandeStr = scanner.nextLine();
+	        try {
+	            int idCommande = Integer.parseInt(idCommandeStr);
+	            gestion.reporterCommande(idCommande); 
+	            System.out.println("Commande reportée.");
+	        } catch (NumberFormatException e) {
+	            System.out.println("ID de commande invalide.");
+	        } catch (SQLException e) {
+	            System.out.println("Erreur lors du report : " + e.getMessage());
+	        }
+	    }
+
+	    public static void modifierQuantiteCommande(Scanner scanner, Gestion gestion) {
+	        System.out.print("Entrez l'ID de la commande à modifier : ");
+	        String idCommandeStr = scanner.nextLine();
+	        System.out.print("Entrez la nouvelle quantité : ");
+	        String quantiteStr = scanner.nextLine();
+	        try {
+	            int idCommande = Integer.parseInt(idCommandeStr);
+	            int quantite = Integer.parseInt(quantiteStr);
+	            gestion.modifierQuantiteCommande(idCommande, quantite);
+	            System.out.println("Quantité modifiée.");
+	        } catch (NumberFormatException e) {
+	            System.out.println("Entrée invalide.");
+	        } catch (SQLException e) {
+	            System.out.println("Erreur lors de la modification : " + e.getMessage());
+	        }
+	    }
+
+	    public static void choisirFournisseurCommande(Scanner scanner, Gestion gestion) {
+	        System.out.print("Entrez l'ID de la commande à associer avec un fournisseur : ");
+	        String idCommandeStr = scanner.nextLine();
+	        System.out.print("Entrez l'ID du fournisseur : ");
+	        String idFournisseurStr = scanner.nextLine();
+	        try {
+	            int idCommande = Integer.parseInt(idCommandeStr);
+	            int idFournisseur = Integer.parseInt(idFournisseurStr);
+	            gestion.choisirFournisseurCommande(idCommande, idFournisseur);
+	            System.out.println("Fournisseur associé à la commande.");
+	        } catch (NumberFormatException e) {
+	            System.out.println("Entrée invalide.");
+	        } catch (SQLException e) {
+	            System.out.println("Erreur lors de l'association : " + e.getMessage());
+	        }
+	    }
+}

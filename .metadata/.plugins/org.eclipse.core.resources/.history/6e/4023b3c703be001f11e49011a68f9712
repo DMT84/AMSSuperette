@@ -1,0 +1,52 @@
+package AMS;
+
+import java.sql.SQLException;
+import java.util.Scanner;
+
+public class ClientMenu {
+    private Scanner scanner;
+    private Gestion gestion;
+
+    public ClientMenu(Scanner scanner, Gestion gestion) {
+        this.scanner = scanner;
+        this.gestion = gestion;
+    }
+
+    public void afficherMenu() {
+        while (true) {
+            System.out.println("=== Menu Client ===");
+            System.out.println("1. Afficher les produits disponibles");
+            System.out.println("2. Acheter un produit");
+            System.out.println("3. Quitter le menu Client");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    try {
+                        gestion.displayTable("produitAMS");
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage : " + e.getMessage());
+                    }
+                    break;
+                case "2":
+                    acheterProduit();
+                    break;
+                case "3":
+                    System.out.println("Retour au menu principal.");
+                    return;
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    private void acheterProduit() {
+        try {
+            // Code d'achat d'un produit
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de l'achat : " + e.getMessage());
+        }
+    }
+}

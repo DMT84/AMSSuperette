@@ -1,0 +1,506 @@
+package AMS;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Scanner;
+
+public class Test {
+    public static void main(String[] args) {
+        Connexion connexion = new Connexion();
+        Scanner scanner = new Scanner(System.in);
+
+        try {
+            Connection conn = connexion.connect();
+            Gestion gestion = new Gestion(conn);
+
+            while (true) {
+                System.out.println("Bienvenue dans le système de gestion de la supérette !");
+                System.out.println("Choisissez votre mode : CLIENT ou VENDEUR ou EXIT pour quitter");
+                String mode = scanner.nextLine().toUpperCase();
+
+                switch (mode) {
+                    case "CLIENT":
+                        clientMenu(scanner, gestion, conn);
+                        break;
+                    case "VENDEUR":
+                        vendeurMenu(scanner, gestion);
+                        break;
+                    case "EXIT":
+                        System.out.println("Au revoir !");
+                        return;
+                    default:
+                        System.out.println("Mode inconnu. Essayez : CLIENT, VENDEUR ou EXIT.");
+                        break;
+                }
+            }
+        } finally {
+            connexion.close();
+        }
+    }
+
+    private static void clientMenu(Scanner scanner, Gestion gestion, Connection conn) {
+        while (true) {
+            System.out.println("=== Menu Client ===");
+            System.out.println("1. Afficher les produits disponibles");
+            System.out.println("2. Acheter un produit");
+            System.out.println("3. Quitter le menu Client");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    try {
+                        gestion.displayTable("produitAMS");
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage : " + e.getMessage());
+                    }
+                    break;
+                case "2":
+                    acheterProduit(scanner, gestion, conn);
+                    break;
+                case "3":
+                    System.out.println("Retour au menu principal.");
+                    return;
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    private static void acheterProduit(Scanner scanner, Gestion gestion, Connection conn) {
+        try {
+            System.out.println("=== Acheter un produit ===");
+            gestion.displayTable("produitAMS");
+
+            System.out.print("Entrez l'ID du produit à acheter : ");
+            int idProduit = Integer.parseInt(scanner.nextLine());
+
+            System.out.print("Entrez la quantité : ");
+            int quantite = Integer.parseInt(scanner.nextLine());
+
+            String queryLot = "select id_lot, quantite from lot where id_achat in (select id_achat from achat where id_produit = ?) and quantite >= ? limit 1";
+            try (PreparedStatement stmt = conn.prepareStatement(queryLot)) {
+                stmt.setInt(1, idProduit);
+                stmt.setInt(2, quantite);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int idLot = rs.getInt("id_lot");
+                        int quantiteDisponible = rs.getInt("quantite");
+
+                        String insertVente = "insert into vente (id_vente, id_lot, date_vente, prix, quantite) values ((select coalesce(max(id_vente), 0) + 1 from vente), ?,current_date, (select prix from produitAMS where id_produit = ?), ?)";
+                        try (PreparedStatement insertStmt = conn.prepareStatement(insertVente, Statement.RETURN_GENERATED_KEYS)) {
+                            insertStmt.setInt(1, idLot);
+                            insertStmt.setInt(2, idProduit);
+                            insertStmt.setInt(3, quantite);
+                            insertStmt.executeUpdate();
+
+                            String updateLot = "update lot set quantite = quantite - ? where id_lot = ?";
+                            try (PreparedStatement updateStmt = conn.prepareStatement(updateLot)) {
+                                updateStmt.setInt(1, quantite);
+                                updateStmt.setInt(2, idLot);
+                                updateStmt.executeUpdate();
+                            }
+
+                            System.out.println("Achat effectué avec succès !");
+                        }
+                    } else {
+                        System.out.println("Produit non disponible ou quantité insuffisante.");
+                    }
+                }
+            }
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de l'achat : " + e.getMessage());
+        }
+    }
+
+    private static void vendeurMenu(Scanner scanner, Gestion gestion) {
+        while (true) {
+            System.out.println("=== Menu Vendeur ===");
+            System.out.println("1. Ajouter un produit");
+            System.out.println("2. Supprimer un produit");
+            System.out.println("3. Afficher les produits");
+            System.out.println("4. Voir les statistiques des ventes");
+            System.out.println("5. Voir les lots périmant bientôt");
+            System.out.println("6. Gérer les fournisseurs");
+            System.out.println("7. Gérer les commandes");
+            System.out.println("8. Quitter le menu Vendeur");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    ajouterProduit(scanner, gestion);
+                    break;
+                case "2":
+                    supprimerProduit(scanner, gestion);
+                    break;
+                case "3":
+                    try {
+                        gestion.displayTable("produitAMS");
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage : " + e.getMessage());
+                    }
+                    break;
+                case "4":
+                    afficherStatistiques(gestion);
+                    break;
+                case "5":
+                    afficherLotsParDate(gestion);
+                    break;
+                case "6":
+                    fournisseurMenu(scanner,gestion);
+                    break;
+                case "7":
+                    gererCommandes(scanner,gestion);
+                    break;
+                case "8":
+                    System.out.println("Retour au menu principal.");
+                    return;
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    private static void ajouterProduit(Scanner scanner, Gestion gestion) {
+        try {
+            System.out.print("Entrez l'id du produit: ");
+            int id = Integer.parseInt(scanner.nextLine());
+
+            System.out.print("Entrez le nom du produit: ");
+            String nom = scanner.nextLine();
+
+            System.out.print("Entrez la description du produit: ");
+            String description = scanner.nextLine();
+
+            System.out.print("Entrez la catégorie: ");
+            String categorie = scanner.nextLine();
+
+            System.out.print("Entrez le prix: ");
+            int prix = Integer.parseInt(scanner.nextLine());
+
+            gestion.insertProduitAMS(id, nom, description, categorie, prix);
+            System.out.println("Produit ajouté avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de l'ajout : " + e.getMessage());
+        }
+    }
+
+    private static void supprimerProduit(Scanner scanner, Gestion gestion) {
+        try {
+            System.out.print("Entrez l'id du produit à supprimer : ");
+            int id_produit = Integer.parseInt(scanner.nextLine());
+
+            gestion.deleteProduitAMS(id_produit);
+            System.out.println("Produit supprimé avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de la suppression : " + e.getMessage());
+        }
+    }
+    private static void supprimerFournisseur(Scanner scanner, Gestion gestion) {
+        try {
+            System.out.print("Entrez l'id du fournisseur à supprimer : ");
+            int id_fournisseur = Integer.parseInt(scanner.nextLine());
+
+            gestion.deleteFournisseur(id_fournisseur);
+            System.out.println("Fournisseur supprimé avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de la suppression : " + e.getMessage());
+        }
+    }
+    private static void afficherStatistiques(Gestion gestion) {
+        try {
+            System.out.println("=== Statistiques des ventes ===");
+
+            String queryJour = "select sum(prix * quantite) as total_benefices_jour, count(*) as total_ventes_jour from vente where date_vente = current_date";
+            try (ResultSet rs = gestion.executeQuery(queryJour)) {
+                if (rs.next()) {
+                    System.out.println("Total des ventes aujourd'hui : " + rs.getInt("total_ventes_jour"));
+                    System.out.println("Bénéfices aujourd'hui : " + rs.getDouble("total_benefices_jour"));
+                }
+            }
+
+            String queryMois = "select sum(prix * quantite) as total_benefices_mois, count(*) as total_ventes_mois from vente where extract(month from date_vente) = extract(month from current_date) and extract(year from date_vente) = extract(year from current_date)";
+            try (ResultSet rs = gestion.executeQuery(queryMois)) {
+                if (rs.next()) {
+                    System.out.println("Total des ventes ce mois-ci : " + rs.getInt("total_ventes_mois"));
+                    System.out.println("Bénéfices ce mois-ci : " + rs.getDouble("total_benefices_mois"));
+                }
+            }
+
+            System.out.println("\nTop 10 des ventes en quantité :");
+            String queryTopQuantite = "select id_lot, sum(quantite) as total_quantite from vente group by id_lot order by total_quantite desc limit 10";
+            try (ResultSet rs = gestion.executeQuery(queryTopQuantite)) {
+                while (rs.next()) {
+                    System.out.println("ID Lot : " + rs.getInt("id_lot") + ", Quantité vendue : " + rs.getInt("total_quantite"));
+                }
+            }
+
+            System.out.println("\nTop 10 des ventes en bénéfices :");
+            String queryTopBenefices = "select id_lot, sum(prix * quantite) as total_benefices from vente group by id_lot order by total_benefices desc limit 10";
+            try (ResultSet rs = gestion.executeQuery(queryTopBenefices)) {
+                while (rs.next()) {
+                    System.out.println("ID Lot : " + rs.getInt("id_lot") + ", Bénéfices : " + rs.getDouble("total_benefices"));
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de l'affichage des statistiques : " + e.getMessage());
+        }
+    }
+    private static void afficherLotsParDate(Gestion gestion) {
+        System.out.println("=== Lots classés par date de péremption ===");
+        try {
+            gestion.afficherLotsParDate();
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de l'affichage des lots : " + e.getMessage());
+        }
+    }
+    private static void fournisseurMenu(Scanner scanner, Gestion gestion) {
+        while (true) {
+            System.out.println("=== Gérer les fournisseurs ===");
+            System.out.println("1. Ajouter un fournisseur");
+            System.out.println("2. Supprimer un fournisseur");
+            System.out.println("3. Afficher les fournisseurs");
+            System.out.println("4. Modifier un fournisseur");
+            System.out.println("5. Retour au menu Vendeur");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    ajouterfournisseur(scanner, gestion);
+                    break;
+                case "2":
+                    supprimerFournisseur(scanner, gestion);
+                    break;
+                case "3":
+                    try {
+                        gestion.displayTable("fournisseur");
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage : " + e.getMessage());
+                    }
+                    break;
+                case "4":
+                    modifierFournisseur(scanner,gestion);
+                    break;
+                case "5":
+                	vendeurMenu(scanner, gestion);
+                    break;
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    private static void ajouterfournisseur(Scanner scanner, Gestion gestion) {
+        try {
+        	System.out.print("Entrez l'id du fournisseur ");
+        	int id_fournisseur = Integer.parseInt(scanner.nextLine());
+            
+            System.out.print("Entrez le nom du fournisseur ");
+            String nom = scanner.nextLine();
+
+            System.out.print("Entrez le numero de siret:");
+            long num_siret = Integer.parseInt(scanner.nextLine());
+
+            System.out.print("Entrez l'adresse du fournisseur: ");
+            String adresse = scanner.nextLine();
+
+            System.out.print("Entrez l'email du fournisseur: ");
+            String email = scanner.nextLine();
+
+            gestion.insertFournisseur(id_fournisseur,nom, num_siret,adresse,email);
+            System.out.println("Fournisseur ajouté avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de l'ajout : " + e.getMessage());
+        }
+    }
+    private static void modifierFournisseur(Scanner scanner, Gestion gestion) {
+        try {
+            // Afficher la liste des fournisseurs
+            System.out.println("=== Liste des Fournisseurs ===");
+            gestion.displayTable("fournisseur");
+
+            // Demander l'ID du fournisseur à modifier
+            System.out.print("Entrez l'ID du fournisseur à modifier : ");
+            int idFournisseur = Integer.parseInt(scanner.nextLine());
+
+            // Demander les nouvelles informations
+            System.out.print("Entrez le nouveau nom du fournisseur : ");
+            String nouveauNom = scanner.nextLine();
+
+            System.out.print("Entrez le nouveau numéro SIRET : ");
+            long nouveauSiret = Long.parseLong(scanner.nextLine());
+
+            System.out.print("Entrez la nouvelle adresse du fournisseur : ");
+            String nouvelleAdresse = scanner.nextLine();
+
+            System.out.print("Entrez le nouvel email du fournisseur : ");
+            String nouvelEmail = scanner.nextLine();
+
+            // Appeler la méthode de mise à jour dans la classe Gestion
+            gestion.updateFournisseur(idFournisseur, nouveauNom, nouveauSiret, nouvelleAdresse, nouvelEmail);
+
+            System.out.println("Fournisseur modifié avec succès !");
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de la modification : " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Entrée invalide. Veuillez saisir des valeurs correctes.");
+        }
+    }
+
+    
+    private static void gererCommandes(Scanner scanner, Gestion gestion) {
+        while (true) {
+            System.out.println("=== Gestion des Commandes ===");
+            System.out.println("1. Valider une commande");
+            System.out.println("2. Reporter une commande");
+            System.out.println("3. Modifier la quantité d'une commande");
+            System.out.println("4. Choisir un fournisseur pour une commande");
+            System.out.println("5. Retour au menu Vendeur");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    validerCommande(scanner, gestion);
+                    break;
+                case "2":
+                    reporterCommande(scanner, gestion);
+                    break;
+                case "3":
+                    modifierQuantiteCommande(scanner, gestion);
+                    break;
+                case "4":
+                    choisirFournisseurCommande(scanner, gestion);
+                    break;
+                case "5":
+                    return; // Retour au menu vendeur
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    private static void validerCommande(Scanner scanner, Gestion gestion) {
+        System.out.print("Entrez l'ID de la commande à valider : ");
+        String idCommandeStr = scanner.nextLine();
+        try {
+            int idCommande = Integer.parseInt(idCommandeStr);
+            
+            // Utiliser la méthode getter pour obtenir la connexion
+            Connection conn = gestion.connection;
+            
+            // Vérifier si la commande a un fournisseur et la valider
+            String query = "SELECT id_fournisseur, id_lot, quantite_commande FROM commande WHERE id_commande = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setInt(1, idCommande);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int idFournisseur = rs.getInt("id_fournisseur");
+                        int idLot = rs.getInt("id_lot");
+                        int quantiteCommande = rs.getInt("quantite_commande");
+
+                        if (idFournisseur != 0) {
+                            // La commande a un fournisseur, on peut la valider
+                            
+                            // Insertion dans la table achat
+                            String insertAchat = "INSERT INTO achat (id_fournisseur, id_produit, prix_unitaire, quantite_achat, date_achat) " +
+                                                 "SELECT ?, p.id_produit, p.prix, ?, CURRENT_DATE " +
+                                                 "FROM lot l JOIN produitAMS p ON l.id_achat = p.id_produit " +
+                                                 "WHERE l.id_lot = ?";
+                            try (PreparedStatement insertStmt = conn.prepareStatement(insertAchat)) {
+                                insertStmt.setInt(1, idFournisseur);
+                                insertStmt.setInt(2, quantiteCommande);
+                                insertStmt.setInt(3, idLot);
+                                insertStmt.executeUpdate();
+                            }
+                            
+                            // Mettre à jour la quantité dans le lot
+                            String updateLot = "UPDATE lot  SET quantite = quantite + ? " + 
+                                               "WHERE id_lot = ?";
+                            try (PreparedStatement updateStmt = conn.prepareStatement(updateLot)) {
+                                updateStmt.setInt(1, quantiteCommande); // Réduire la quantité dans le lot
+                                updateStmt.setInt(2, idLot);
+                                updateStmt.executeUpdate();
+                            }
+                            
+                            // Mettre à jour le statut de la commande
+                            String updateCommande = "UPDATE commande SET statut = 'Validée' WHERE id_commande = ?";
+                            try (PreparedStatement updateStmt = conn.prepareStatement(updateCommande)) {
+                                updateStmt.setInt(1, idCommande);
+                                updateStmt.executeUpdate();
+                                System.out.println("Commande validée et ajoutée dans l'achat.");
+                            }
+                        } else {
+                            System.out.println("La commande n'a pas de fournisseur associé, impossible de valider.");
+                        }
+                    } else {
+                        System.out.println("Commande non trouvée.");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de la validation de la commande : " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("ID de commande invalide.");
+        }
+    }
+
+
+    private static void reporterCommande(Scanner scanner, Gestion gestion) {
+        System.out.print("Entrez l'ID de la commande à reporter : ");
+        String idCommandeStr = scanner.nextLine();
+        try {
+            int idCommande = Integer.parseInt(idCommandeStr);
+            gestion.reporterCommande(idCommande);  // Méthode à implémenter dans la classe Gestion
+            System.out.println("Commande reportée.");
+        } catch (NumberFormatException e) {
+            System.out.println("ID de commande invalide.");
+        } catch (SQLException e) {
+            System.out.println("Erreur lors du report : " + e.getMessage());
+        }
+    }
+
+    private static void modifierQuantiteCommande(Scanner scanner, Gestion gestion) {
+        System.out.print("Entrez l'ID de la commande à modifier : ");
+        String idCommandeStr = scanner.nextLine();
+        System.out.print("Entrez la nouvelle quantité : ");
+        String quantiteStr = scanner.nextLine();
+        try {
+            int idCommande = Integer.parseInt(idCommandeStr);
+            int quantite = Integer.parseInt(quantiteStr);
+            gestion.modifierQuantiteCommande(idCommande, quantite);  // Méthode à implémenter dans la classe Gestion
+            System.out.println("Quantité modifiée.");
+        } catch (NumberFormatException e) {
+            System.out.println("Entrée invalide.");
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de la modification : " + e.getMessage());
+        }
+    }
+
+    private static void choisirFournisseurCommande(Scanner scanner, Gestion gestion) {
+        System.out.print("Entrez l'ID de la commande à associer avec un fournisseur : ");
+        String idCommandeStr = scanner.nextLine();
+        System.out.print("Entrez l'ID du fournisseur : ");
+        String idFournisseurStr = scanner.nextLine();
+        try {
+            int idCommande = Integer.parseInt(idCommandeStr);
+            int idFournisseur = Integer.parseInt(idFournisseurStr);
+            gestion.choisirFournisseurCommande(idCommande, idFournisseur);  // Méthode à implémenter dans la classe Gestion
+            System.out.println("Fournisseur associé à la commande.");
+        } catch (NumberFormatException e) {
+            System.out.println("Entrée invalide.");
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de l'association : " + e.getMessage());
+        }
+    }
+}

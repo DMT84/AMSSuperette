@@ -1,0 +1,56 @@
+package AMS;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Scanner;
+
+public class Client {
+	private static void acheterProduit(Scanner scanner, Gestion gestion, Connection conn) {
+        try {
+            System.out.println("=== Acheter un produit ===");
+            gestion.displayTable("produitAMS");
+
+            System.out.print("Entrez l'ID du produit à acheter : ");
+            int idProduit = Integer.parseInt(scanner.nextLine());
+
+            System.out.print("Entrez la quantité : ");
+            int quantite = Integer.parseInt(scanner.nextLine());
+
+            String queryLot = "select id_lot, quantite from lot where id_achat in (select id_achat from achat where id_produit = ?) and quantite >= ? limit 1";
+            try (PreparedStatement stmt = conn.prepareStatement(queryLot)) {
+                stmt.setInt(1, idProduit);
+                stmt.setInt(2, quantite);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        int idLot = rs.getInt("id_lot");
+                        int quantiteDisponible = rs.getInt("quantite");
+
+                        String insertVente = "insert into vente (id_vente, id_lot, date_vente, prix, quantite) values ((select coalesce(max(id_vente), 0) + 1 from vente), ?,current_date, (select prix from produitAMS where id_produit = ?), ?)";
+                        try (PreparedStatement insertStmt = conn.prepareStatement(insertVente, Statement.RETURN_GENERATED_KEYS)) {
+                            insertStmt.setInt(1, idLot);
+                            insertStmt.setInt(2, idProduit);
+                            insertStmt.setInt(3, quantite);
+                            insertStmt.executeUpdate();
+
+                            String updateLot = "update lot set quantite = quantite - ? where id_lot = ?";
+                            try (PreparedStatement updateStmt = conn.prepareStatement(updateLot)) {
+                                updateStmt.setInt(1, quantite);
+                                updateStmt.setInt(2, idLot);
+                                updateStmt.executeUpdate();
+                            }
+
+                            System.out.println("Achat effectué avec succès !");
+                        }
+                    } else {
+                        System.out.println("Produit non disponible ou quantité insuffisante.");
+                    }
+                }
+            }
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de l'achat : " + e.getMessage());
+        }
+    }
+}

@@ -1,0 +1,226 @@
+package AMS;
+
+import java.sql.Connection;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Scanner;
+
+public class Test {
+    public static void main(String[] args) {
+        Connexion connexion = new Connexion();
+        Scanner scanner = new Scanner(System.in);
+
+        try {
+            Connection conn = connexion.connect();
+            Gestion gestion = new Gestion(conn);
+
+            while (true) {
+                System.out.println("Bienvenue dans le système de gestion de la supérette !");
+                System.out.println("Choisissez votre mode : CLIENT ou VENDEUR ou EXIT pour quitter");
+                String mode = scanner.nextLine().toUpperCase();
+
+                switch (mode) {
+                    case "CLIENT":
+                        clientMenu(scanner, gestion, conn);
+                        break;
+                    case "VENDEUR":
+                        vendeurMenu(scanner, gestion);
+                        break;
+                    case "EXIT":
+                        System.out.println("Au revoir !");
+                        return;
+                    default:
+                        System.out.println("Mode inconnu. Essayez : CLIENT, VENDEUR ou EXIT.");
+                        break;
+                }
+            }
+        } finally {
+            connexion.close();
+        }
+    }
+
+    private static void clientMenu(Scanner scanner, Gestion gestion, Connection conn) {
+        while (true) {
+            System.out.println("=== Menu Client ===");
+            System.out.println("1. Afficher les produits disponibles");
+            System.out.println("2. Acheter un produit");
+            System.out.println("3. Quitter le menu Client");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    try {
+                        gestion.displayTable("produitAMS");
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage : " + e.getMessage());
+                    }
+                    break;
+                case "2":
+                    Client.acheterProduit(scanner, gestion, conn);
+                    break;
+                case "3":
+                    System.out.println("Retour au menu principal.");
+                    return;
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    
+
+    private static void vendeurMenu(Scanner scanner, Gestion gestion) {
+        while (true) {
+            System.out.println("=== Menu Vendeur ===");
+            System.out.println("1. Ajouter un produit");
+            System.out.println("2. Supprimer un produit");
+            System.out.println("3. Afficher les produits");
+            System.out.println("4. Voir les statistiques des ventes");
+            System.out.println("5. Voir les lots périmant bientôt");
+            System.out.println("6. Gérer les fournisseurs");
+            System.out.println("7. Gérer les commandes");
+            System.out.println("8. Afficher le prix d'achat moyen des produits");
+            System.out.println("9. Quitter le menu Vendeur");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    Vendeur.ajouterProduit(scanner, gestion);
+                    break;
+                case "2":
+                    Vendeur.supprimerProduit(scanner, gestion);
+                    break;
+                case "3":
+                    try {
+                        gestion.displayTable("produitAMS");
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage : " + e.getMessage());
+                    }
+                    break;
+                case "4":
+                    Statistique.afficherStatistiques(gestion);
+                    break;
+                case "5":
+                    afficherLotsParDate(gestion);
+                    break;
+                case "6":
+                    fournisseurMenu(scanner,gestion);
+                    break;
+                case "7":
+                    gererCommandes(scanner,gestion);
+                    break;
+                case "8":
+                    try {
+                        gestion.afficherPrixAchatMoyen();
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage des prix d'achat moyens : " + e.getMessage());
+                    }
+                    break;
+
+                case "9":
+                    System.out.println("Retour au menu principal.");
+                    return;
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    
+
+    
+    
+   
+
+    private static void afficherLotsParDate(Gestion gestion) {
+        System.out.println("=== Lots classés par date de péremption ===");
+        try {
+            gestion.afficherLotsParDate();
+        } catch (SQLException e) {
+            System.out.println("Erreur lors de l'affichage des lots : " + e.getMessage());
+        }
+    }
+    private static void fournisseurMenu(Scanner scanner, Gestion gestion) {
+        while (true) {
+            System.out.println("=== Gérer les fournisseurs ===");
+            System.out.println("1. Ajouter un fournisseur");
+            System.out.println("2. Supprimer un fournisseur");
+            System.out.println("3. Afficher les fournisseurs");
+            System.out.println("4. Modifier un fournisseur");
+            System.out.println("5. Retour au menu Vendeur");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    Fournisseur.ajouterfournisseur(scanner, gestion);
+                    break;
+                case "2":
+                    Fournisseur.supprimerFournisseur(scanner, gestion);
+                    break;
+                case "3":
+                    try {
+                        gestion.displayTable("fournisseur");
+                    } catch (SQLException e) {
+                        System.out.println("Erreur lors de l'affichage : " + e.getMessage());
+                    }
+                    break;
+                case "4":
+                    Fournisseur.modifierFournisseur(scanner,gestion);
+                    break;
+                case "5":
+                	vendeurMenu(scanner, gestion);
+                    return;
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+    
+
+    
+    private static void gererCommandes(Scanner scanner, Gestion gestion) {
+        while (true) {
+            System.out.println("=== Gestion des Commandes ===");
+            System.out.println("1. Valider une commande");
+            System.out.println("2. Reporter une commande");
+            System.out.println("3. Modifier la quantité d'une commande");
+            System.out.println("4. Choisir un fournisseur pour une commande");
+            System.out.println("5. Retour au menu Vendeur");
+            System.out.print("Votre choix : ");
+            String choix = scanner.nextLine();
+
+            switch (choix) {
+                case "1":
+                    Commande.validerCommande(scanner, gestion);
+                    break;
+                case "2":
+                    Commande.reporterCommande(scanner, gestion);
+                    break;
+                case "3":
+                    Commande.modifierQuantiteCommande(scanner, gestion);
+                    break;
+                case "4":
+                    Commande.choisirFournisseurCommande(scanner, gestion);
+                    break;
+                case "5":
+                	vendeurMenu(scanner, gestion);
+                    return;
+                default:
+                    System.out.println("Choix invalide. Veuillez réessayer.");
+                    break;
+            }
+        }
+    }
+
+   
+}

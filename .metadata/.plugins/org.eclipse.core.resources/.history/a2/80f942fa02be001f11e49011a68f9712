@@ -1,0 +1,242 @@
+package AMS;
+
+import java.sql.*;
+import java.util.HashMap;
+
+public class Gestion {
+
+    public Connection connection;
+
+    public Gestion(Connection connection) {
+        this.connection = connection;
+    }
+
+    public void executeCommand(String sql) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+            System.out.println("Commande exécutée : " + sql);
+        }
+    }
+    public ResultSet executeQuery(String query) throws SQLException {
+        Statement stmt = connection.createStatement();
+        return stmt.executeQuery(query);
+    }
+
+
+    public void displayTable(String tableName) throws SQLException {
+        String query = "select * from " + tableName;
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+            ResultSetMetaData metaData = rs.getMetaData();
+            int columnCount = metaData.getColumnCount();
+
+            for (int i = 1; i <= columnCount; i++) {
+                System.out.print(metaData.getColumnName(i) + "\t");
+            }
+            System.out.println();
+
+            while (rs.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    System.out.print(rs.getString(i) + "\t");
+                }
+                System.out.println();
+            }
+        }
+    }
+
+    public void createTableProduitAMS() throws SQLException {
+        String createTableSQL = """
+            CREATE TABLE IF NOT EXISTS produitAMS (
+                id_produit NUMERIC(6,0) PRIMARY KEY,
+                nom CHARACTER VARYING(30),
+                descr CHARACTER VARYING(30),
+                categorie CHARACTER VARYING(30),
+                prix CHARACTER VARYING(30)
+            );
+        """;
+        executeCommand(createTableSQL);
+        System.out.println("Table 'produitAMS' créée ou déjà existante.");
+    }
+
+    public void insertProduitAMS(int id_produit, String nom, String descr, String categorie, int prix) throws SQLException {
+        String query = "insert into produitAMS (id_produit, nom, descr, categorie, prix) values (?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, id_produit);
+            stmt.setString(2, nom);
+            stmt.setString(3, descr);
+            stmt.setString(4, categorie);
+            stmt.setInt(5, prix);
+            stmt.executeUpdate();
+            System.out.println("Produit ajouté avec succès !");
+        }
+    }
+    public void insertFournisseur(int id_fournisseur,String nom, int num_siret, String adresse, String email) throws SQLException {
+        String query = "insert into fournisseur(id_fournisseur,nom, num_siret, adresse, email) values (?, ?,?, ?, ?)";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        	stmt.setInt(1, id_fournisseur);
+        	stmt.setString(2, nom);
+            stmt.setInt(3, num_siret);
+            stmt.setString(4, adresse);
+            stmt.setString(5, email);
+            stmt.executeUpdate();
+            System.out.println("Fournisseur ajouté avec succès !");
+        }
+    }
+
+    public void deleteProduitAMS(int id_produit) throws SQLException {
+        String query = "delete from produitAMS where id_produit = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, id_produit);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Produit supprimé avec succès !");
+            } else {
+                System.out.println("Aucun produit trouvé avec cet ID.");
+            }
+        }
+    }
+    public void deleteFournisseur(int id_fournisseur) throws SQLException {
+        String query = "delete from fournisseur where id_fournisseur = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, id_fournisseur);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Fournisseur supprimé avec succès !");
+            } else {
+                System.out.println("Aucun fournisseur trouvé avec cet ID.");
+            }
+        }
+    }
+
+    public HashMap<String, String> structTable(String tableName) throws SQLException {
+        HashMap<String, String> struct = new HashMap<>();
+        String query = "select * from " + tableName + " limit 0";
+
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+            ResultSetMetaData metaData = rs.getMetaData();
+            for (int i = 1; i <= metaData.getColumnCount(); i++) {
+                struct.put(metaData.getColumnName(i), metaData.getColumnTypeName(i));
+            }
+        }
+
+        struct.forEach((colName, colType) -> System.out.println(colName + " - " + colType));
+        return struct;
+    }
+    public void afficherLotsParDate() throws SQLException {
+        String query = "select * from lot order by date_peremption";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+            System.out.printf("%-10s %-10s %-10s %-15s %-15s%n", "ID_Lot", "ID_Achat", "Quantité", "Date Achat", "Date Péremption");
+            while (rs.next()) {
+                int idLot = rs.getInt("id_lot");
+                int idAchat = rs.getInt("id_achat");
+                int quantite = rs.getInt("quantite");
+                String dateAchat = rs.getString("date_achat");
+                String datePeremption = rs.getString("date_peremption");
+
+                System.out.printf("%-10d %-10d %-10d %-15s %-15s%n", idLot, idAchat, quantite, dateAchat, datePeremption);
+            }
+        }
+    }
+    public void validerCommande(int idCommande) throws SQLException {
+        String query = "UPDATE commande SET statut = 'Validée' WHERE id_commande = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, idCommande);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Commande validée avec succès.");
+            } else {
+                System.out.println("Commande non trouvée.");
+            }
+        }
+    }
+
+    // Reporter une commande
+    public void reporterCommande(int idCommande) throws SQLException {
+        String query = "UPDATE commande SET statut = 'Reportée' WHERE id_commande = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, idCommande);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Commande reportée avec succès.");
+            } else {
+                System.out.println("Commande non trouvée.");
+            }
+        }
+    }
+
+    // Modifier la quantité d'une commande
+    public void modifierQuantiteCommande(int idCommande, int quantite) throws SQLException {
+        String query = "UPDATE commande SET quantite_commande = ? WHERE id_commande = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, quantite);
+            stmt.setInt(2, idCommande);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Quantité de la commande modifiée avec succès.");
+            } else {
+                System.out.println("Commande non trouvée.");
+            }
+        }
+    }
+
+    // Choisir un fournisseur pour une commande
+    public void choisirFournisseurCommande(int idCommande, int idFournisseur) throws SQLException {
+        String query = "UPDATE commande SET id_fournisseur = ? WHERE id_commande = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, idFournisseur);
+            stmt.setInt(2, idCommande);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Fournisseur associé à la commande avec succès.");
+            } else {
+                System.out.println("Commande non trouvée.");
+            }
+        }
+    }
+    public void updateFournisseur(int id_fournisseur, String nom, long num_siret, String adresse, String email) throws SQLException {
+        String query = "UPDATE fournisseur SET nom = ?, num_siret = ?, adresse = ?, email = ? WHERE id_fournisseur = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, nom);
+            stmt.setLong(2, num_siret);
+            stmt.setString(3, adresse);
+            stmt.setString(4, email);
+            stmt.setInt(5, id_fournisseur);
+            stmt.executeUpdate();
+        }
+    }
+    public void afficherPrixAchatMoyen() throws SQLException {
+        String query = """
+            SELECT 
+                p.id_produit,
+                p.nom AS nom_produit,
+                COALESCE(AVG(a.prix_unitaire), 0) AS prix_achat_moyen
+            FROM 
+                produitAMS p
+            LEFT JOIN achat a ON p.id_produit = a.id_produit
+            LEFT JOIN lot l ON a.id_achat = l.id_achat
+            WHERE 
+                l.id_lot NOT IN (
+                    SELECT id_lot FROM vente
+                )
+            GROUP BY 
+                p.id_produit, p.nom
+            ORDER BY 
+                p.id_produit;
+        """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+            System.out.println("=== Prix d'achat moyen des produits ===");
+            while (rs.next()) {
+                int idProduit = rs.getInt("id_produit");
+                String nomProduit = rs.getString("nom_produit");
+                double prixAchatMoyen = rs.getDouble("prix_achat_moyen");
+
+                System.out.printf("ID Produit: %d | Nom: %s | Prix d'achat moyen: %.2f\n", 
+                    idProduit, nomProduit, prixAchatMoyen);
+            }
+        }
+    }
+
+
+}

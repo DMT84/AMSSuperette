@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<item key="hasShownOverlayPopupBefore" value="true"/>
+	<item key="replaceBarOpen" value="true"/>
+	<list key="replacehistory">
+		<item value="on"/>
+		<item value="not in"/>
+		<item value="as"/>
+		<item value="order by"/>
+		<item value="group by"/>
+		<item value="left join"/>
+		<item value="from"/>
+		<item value="select"/>
+		<item value="where"/>
+		<item value="set"/>
+		<item value="update"/>
+		<item value="join"/>
+		<item value="insert into"/>
+		<item value="extract"/>
+		<item value="count"/>
+	</list>
+	<list key="searchhistory">
+		<item value="on"/>
+		<item value="not in"/>
+		<item value="as"/>
+		<item value="order by"/>
+		<item value="Group by"/>
+		<item value="LEFT JOIN"/>
+		<item value="FROM"/>
+		<item value="SELECT"/>
+		<item value="WHERE"/>
+		<item value="SET"/>
+		<item value="UPDATE"/>
+		<item value="ON"/>
+		<item value="JOIN"/>
+		<item value="INSERT INTO"/>
+		<item value="EXTRACT"/>
+	</list>
+</section>

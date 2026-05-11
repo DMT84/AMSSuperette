@@ -1,0 +1,42 @@
+package AMS;
+
+import java.sql.SQLException;
+import java.util.Scanner;
+
+public class Vendeur {
+	public static void ajouterProduit(Scanner scanner, Gestion gestion) {
+        try {
+            System.out.print("Entrez l'id du produit: ");
+            int id = Integer.parseInt(scanner.nextLine());
+
+            System.out.print("Entrez le nom du produit: ");
+            String nom = scanner.nextLine();
+
+            System.out.print("Entrez la description du produit: ");
+            String description = scanner.nextLine();
+
+            System.out.print("Entrez la catégorie: ");
+            String categorie = scanner.nextLine();
+
+            System.out.print("Entrez le prix: ");
+            int prix = Integer.parseInt(scanner.nextLine());
+
+            gestion.insertProduitAMS(id, nom, description, categorie, prix);
+            System.out.println("Produit ajouté avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de l'ajout : " + e.getMessage());
+        }
+    }
+
+	public static void supprimerProduit(Scanner scanner, Gestion gestion) {
+        try {
+            System.out.print("Entrez l'id du produit à supprimer : ");
+            int id_produit = Integer.parseInt(scanner.nextLine());
+
+            gestion.deleteProduitAMS(id_produit);
+            System.out.println("Produit supprimé avec succès !");
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println("Erreur lors de la suppression : " + e.getMessage());
+        }
+    }
+}

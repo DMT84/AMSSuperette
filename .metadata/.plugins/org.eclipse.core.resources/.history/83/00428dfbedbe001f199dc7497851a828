@@ -1,0 +1,137 @@
+!Pour notre Superette nous avons developper les fonctionnalité suivante:
+-pour le coté client :
+	-possibilité d’acheter des produits
+		les client peuvent acheter les produit qu’il veulent parmi ceux disponible dans la bdd
+	-afficher les produits
+		Affiche la liste complete des produits disponible dans la bdd
+-pour le coté vendeur:
+	-ajout d produits
+		permet d’ajouter un produit en specifiant chaque attribut
+	-supprimer un produit
+		permet de supprimer un produit en selectionnant l’id du produit a supprimer
+	-afficher les produits
+		Affiche la liste complete des produits disponible dans la bdd
+	-voir les stat de ventes
+		permet d’afficher les statistiques concernant les benefices du jours et du mois, le top 10 			des ventes en benefices et top 10 des vente en quantité
+	-voir les lot qui perime bientot
+		affiche la liste de lot qui attendron bientot leur date de peremption trier de la plus proche 		a la plus lointaine
+	-gerer les fournisseur
+		ouvre le menu de gestion des fournisseur
+	-gerer les commandes
+		ouvre le menu de gestion des commandes
+	-afficher le prix moyen des produits
+		afiche le prix moyen pour un meme produit(marche moyen)
+-pour gerer les fournisseur:
+	-ajout de fournisseur
+		permet d’ajouter un fournisseur en specifiant chaque attribut
+	-suppr fournisseur
+		permet de supprimer un fournisseur en selectionnant l’id du fournisseur a supprimer
+	-afficher les fournisseur
+		Affiche la liste complete des fournisseur disponible dans la bdd
+	-modifier un fournisseur
+		permet de supprimer un fournisseur en selectionnant l’id du fournisseur a modifier
+		puis en donnant les valeur de chaque attribut
+-pour gerer les commandes:
+	-valide un commande
+		permet de mettre le statue d’une commande a l’etat “validée”
+		ajoute en suite la commandes valider dans la tables achat et met a jour la quantité du 			produit.
+		(Peut etre validé uniquement quand un fournisseur est attribué)
+	-reporter une commande
+		permet de mettre le statue d’une commande a l’etat “reportée”
+	-modifier qtt commande
+		permet de modifier la quantite de la commande selectionner
+	-choisir fournisseur commande
+		permet de choisir un fournisseur a attribuer a une commande en choisissant son id
+	-afficher achat
+		Affiche la liste complete des achats disponible dans la bdd
+	-affichet commandes
+		Affiche la liste complete des commandes disponible dans la bdd
+
+Pour notre bdd nous avons repris la modelisation deja envoyer mais avec queqlue modification.
+Notre bdd se compose de 10 tables:
+
+contactvente
+contactcontrat
+vente
+lot
+achat
+contrat
+contact
+produitAMS
+fournisseur
+commande
+
+la table contactvente contient:
+idvente
+idcontact
+
+la table contactcontrat contient:
+idcontrat
+idcontact
+
+la table vente contient:
+idvente
+idlot
+la date de vente
+le prix de vente
+quantité de vente
+
+la table lot contient:
+idlot
+idachat
+quantité du lot
+la date d’achat du lot
+la date de peremption du lot
+
+la table achat contient:
+idachat
+idfournisseur
+idproduit
+le prix a l’unité
+quantite d’achat
+la date d’achat
+la date de peremption
+
+la table contrat contient:
+idcontrat
+idfournisseur
+idproduit
+quantité
+la date du debut du contrat
+la date de fin du contrat
+le prix
+
+la table contact contient:
+idcontact
+idfournisseur
+la fonction
+son nom
+son prenom
+son telephone
+son email
+
+la table produitAMS contient:
+idproduit
+le nom du prduit
+une description
+une categorie
+son prix
+
+la table fournisseur contient:
+idfournisseur
+le nom du fournisseur
+le num SIRET ( ici nous avons mis la limite a 15 car pour 14 cela nous causer des problemes)
+son addresse
+son email
+
+la table commande contient:
+idcommande
+idlot
+quantité commandé
+la status de la commande
+id fournisseur
+la date de la commande
+
+Nous avons ajouté la table commande car nous en avions besoin pour gere l’histoire des statue des commandes.
+
+Il faut penser à retélecharger postgresql car on l a fait sur nos machines personnels et de lancer le projet avec le chemin AMS_Bartier_Botella\AMS.
